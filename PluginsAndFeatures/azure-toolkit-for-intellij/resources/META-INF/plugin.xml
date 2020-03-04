@@ -90,6 +90,7 @@
     <fileEditorProvider implementation="com.microsoft.intellij.helpers.webapp.DeploymentSlotPropertyViewProvider"/>
     <fileEditorProvider implementation="com.microsoft.intellij.helpers.arm.DeploymentPropertyViewProvider"/>
     <fileEditorProvider implementation="com.microsoft.intellij.helpers.arm.ResourceTemplateViewProvider"/>
+    <fileEditorProvider implementation="com.microsoft.intellij.helpers.spring.SpringCloudAppPropertyViewProvider"/>
     <toolWindow
           anchor="left"
           factoryClass="com.microsoft.intellij.components.ServerExplorerToolWindowFactory"
@@ -217,6 +218,7 @@
             text="Deploy to Azure" description="Deploy to Azure"
             icon="/icons/PublishWebApp_16.png">
     </action>
+    <action id="Actions.SpringCloudTest" class="com.microsoft.intellij.actions.SpringCloudDemoAction" text="Azure Spring Cloud Demo" />
     <action id="Actions.AddDockerSupport" class="com.microsoft.intellij.actions.AddDockerSupportAction"
             text="Add Docker Support" description="Add Docker Support"
             icon="/icons/AddDockerSupport_16.png">
@@ -266,6 +268,7 @@
     <group id="AzurePopupGroup" text="Azure" description="Azure" icon="/icons/azure.png" popup="true"
            class="com.microsoft.intellij.actions.AzurePopupGroup">
       <reference ref="Actions.WebDeployAction"/>
+      <reference ref="Actions.SpringCloudTest"/>
       <separator/>
       <reference ref="Actions.AddDockerSupport"/>
       <reference ref="Actions.RunOnDockerHost"/>

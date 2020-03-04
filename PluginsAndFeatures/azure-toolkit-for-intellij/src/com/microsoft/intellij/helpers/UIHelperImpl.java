@@ -23,6 +23,7 @@
 package com.microsoft.intellij.helpers;
 
 import static com.microsoft.intellij.helpers.arm.DeploymentPropertyViewProvider.TYPE;
+import static com.microsoft.intellij.helpers.spring.SpringCloudAppPropertyViewProvider.SPRING_CLOUD_APP_PROPERTY_TYPE;
 
 import com.google.common.collect.ImmutableMap;
 import com.intellij.openapi.application.ApplicationManager;
@@ -92,6 +93,9 @@ public class UIHelperImpl implements UIHelper {
     public static final Key<String> RESOURCE_ID = new Key<>("resourceId");
     public static final Key<String> WEBAPP_ID = new Key<>("webAppId");
     public static final Key<String> SLOT_NAME = new Key<>("slotName");
+    public static final Key<String> RESOURCE_GROUP_NAME = new Key<>("resourceGroup");
+    public static final Key<String> CLUSTER_NAME = new Key<>("cluster");
+    public static final Key<String> APP_NAME = new Key<>("appName");
     private Map<Class<? extends StorageServiceTreeItem>, Key<? extends StorageServiceTreeItem>> name2Key = ImmutableMap.of(BlobContainer.class, BlobExplorerFileEditorProvider.CONTAINER_KEY,
             Queue.class, QueueExplorerFileEditorProvider.QUEUE_KEY,
             Table.class, TableExplorerFileEditorProvider.TABLE_KEY);
@@ -407,6 +411,29 @@ public class UIHelperImpl implements UIHelper {
                 ((DeploymentPropertyView) fileEditor).onLoadProperty(node);
             }
         }
+    }
+
+    public void openSpringCloudAppPropertyView(Project project) {
+        final FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+        if (fileEditorManager == null) {
+            showError(CANNOT_GET_FILE_EDITOR_MANAGER, UNABLE_TO_OPEN_EDITOR_WINDOW);
+            return;
+        }
+        final String id = "id";
+        final String subscription = "subs";
+        final String resourceGroup = "resource-group";
+        final String cluster = "cluster";
+        final String appName = "appName";
+        LightVirtualFile itemVirtualFile = searchExistingFile(fileEditorManager, SPRING_CLOUD_APP_PROPERTY_TYPE, id);
+        if (itemVirtualFile == null) {
+            itemVirtualFile = createVirtualFile(appName, SPRING_CLOUD_APP_PROPERTY_TYPE,
+                    DeploymentNode.ICON_PATH, subscription, id);
+        }
+        itemVirtualFile.putUserData(RESOURCE_GROUP_NAME, resourceGroup);
+        itemVirtualFile.putUserData(CLUSTER_NAME, cluster);
+        itemVirtualFile.putUserData(APP_NAME, appName);
+
+        fileEditorManager.openFile(itemVirtualFile, true, true);
     }
 
     @Override
