@@ -293,7 +293,7 @@ public class SpringCloudAppPropertyView extends BaseEditor {
 
         this.rxSubscription = SpringCloudStateManager.INSTANCE.handleSpringAppEvents(appId, event -> {
             if (event.isUpdate()) {
-                this.notifyDataRefresh(event.getAppInner(), event.getDeploymentInner());
+                this.prepareViewModel(event.getAppInner(), event.getDeploymentInner());
             }
         });
         this.rxSubscription2 = SpringCloudStateManager.INSTANCE.handleSpringClusterEvents(clusterId, event -> {
@@ -819,10 +819,6 @@ public class SpringCloudAppPropertyView extends BaseEditor {
                 PluginUtil.showErrorNotificationProject(project, "Cannot binding data to Spring Cloud property view.", e.getMessage());
             });
         }
-    }
-
-    private void notifyDataRefresh(AppResourceInner appInner, DeploymentResourceInner deploymentResourceInner) {
-        this.prepareViewModel(appInner, deploymentResourceInner);
     }
 
     private void updateModel(SpringAppViewModel newModel) throws AzureExecutionException {
