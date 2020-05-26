@@ -156,9 +156,9 @@ public class SpringCloudNode extends RefreshableNode implements TelemetryPropert
             SpringCloudStateManager.INSTANCE.notifySpringAppUpdate(this.clusterId, app, deploymentResourceInner);
             addChildNode(new SpringCloudAppNode(app, deploymentResourceInner, this));
         }
-        rxSubscription = SpringCloudStateManager.INSTANCE.handleSpringClusterEvents(this.clusterId, event -> {
+        rxSubscription = SpringCloudStateManager.INSTANCE.subscribeSpringAppEvent(event -> {
             notifyDataRefresh(event);
-        });
+        }, this.clusterId);
     }
 
     public String getClusterId() {

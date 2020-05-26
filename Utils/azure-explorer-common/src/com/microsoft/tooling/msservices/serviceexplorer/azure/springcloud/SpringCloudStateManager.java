@@ -29,31 +29,35 @@ import io.reactivex.rxjava3.annotations.NonNull;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.functions.Consumer;
 import io.reactivex.rxjava3.subjects.PublishSubject;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.collections4.CollectionUtils;
+
+import java.util.Arrays;
 
 public enum SpringCloudStateManager {
     INSTANCE;
 
     private final PublishSubject<SpringCloudAppEvent> appSubject = PublishSubject.create();
 
-    public Disposable handleSpringAppEvents(String appId, @NonNull Consumer<SpringCloudAppEvent> onNext) {
-        return appSubject.filter(event -> StringUtils.equals(event.getId(), appId)).subscribe(onNext);
-    }
-
-    public Disposable handleSpringClusterEvents(String clusterId, @NonNull Consumer<SpringCloudAppEvent> onNext) {
-        return appSubject.filter(event -> StringUtils.equals(event.getClusterId(), clusterId)).subscribe(onNext);
+    public Disposable subscribeSpringAppEvent(@NonNull Consumer<SpringCloudAppEvent> onNext, String... ids) {
+        if (ids.length == 0) {
+            throw new IllegalArgumentException("Empty ids is illegal.");
+        }
+        return appSubject.filter(event -> CollectionUtils.containsAny(Arrays.asList(ids), event.getClusterId(),
+                                                                      event.getId())).subscribe(onNext);
     }
 
     public void notifySpringAppUpdate(String clusterId, AppResourceInner appInner, DeploymentResourceInner deploymentInner) {
         DefaultLoader.getIdeHelper().invokeLater(() -> {
-            appSubject.onNext(new SpringCloudAppEvent(SpringCloudAppEvent.SPRING_APP_UPDATE, clusterId, appInner, deploymentInner));
+            appSubject.onNext(new SpringCloudAppEvent(SpringCloudAppEvent.EventKind.SPRING_APP_UPDATE, clusterId,
+                                                      appInner,
+                                                      deploymentInner));
         });
 
     }
 
     public void notifySpringAppDelete(String clusterId, String appId) {
         DefaultLoader.getIdeHelper().invokeLater(() -> {
-            appSubject.onNext(new SpringCloudAppEvent(SpringCloudAppEvent.SPRING_APP_DELETE, clusterId, appId));
+            appSubject.onNext(new SpringCloudAppEvent(SpringCloudAppEvent.EventKind.SPRING_APP_DELETE, clusterId, appId));
         });
     }
 }

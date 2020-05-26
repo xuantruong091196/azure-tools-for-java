@@ -80,11 +80,11 @@ public class SpringCloudAppNode extends Node implements SpringCloudAppNodeView {
         springCloudAppNodePresenter = new SpringCloudAppNodePresenter();
         springCloudAppNodePresenter.onAttachView(this);
         fillData(app, deploy);
-        rxSubscription = SpringCloudStateManager.INSTANCE.handleSpringAppEvents(this.app.id(), event -> {
+        rxSubscription = SpringCloudStateManager.INSTANCE.subscribeSpringAppEvent(event -> {
             if (event.isUpdate()) {
                 fillData(event.getAppInner(), event.getDeploymentInner());
             }
-        });
+        }, this.app.id());
     }
 
     @Override

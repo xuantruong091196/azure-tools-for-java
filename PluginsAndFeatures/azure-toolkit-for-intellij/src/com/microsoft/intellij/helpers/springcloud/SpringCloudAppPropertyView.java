@@ -152,7 +152,6 @@ public class SpringCloudAppPropertyView extends BaseEditor {
     private DefaultTableModel instancesTableModel;
     private final Map<JComponent, Border> borderMap = new HashMap<>();
     private final Disposable rxSubscription;
-    private final Disposable rxSubscription2;
     private static LoadingCache<String, String> testKeyCache = CacheBuilder.newBuilder()
                                                                            .expireAfterWrite(10, TimeUnit.MINUTES)
                                                                            .build(new CacheLoader<String, String>() {
@@ -291,16 +290,13 @@ public class SpringCloudAppPropertyView extends BaseEditor {
 
         initUI();
 
-        this.rxSubscription = SpringCloudStateManager.INSTANCE.handleSpringAppEvents(appId, event -> {
+        this.rxSubscription = SpringCloudStateManager.INSTANCE.subscribeSpringAppEvent(event -> {
             if (event.isUpdate()) {
                 this.prepareViewModel(event.getAppInner(), event.getDeploymentInner());
-            }
-        });
-        this.rxSubscription2 = SpringCloudStateManager.INSTANCE.handleSpringClusterEvents(clusterId, event -> {
-            if (event.isDelete()) {
+            } else if (event.isDelete()) {
                 closeEditor();
             }
-        });
+        }, appId, clusterId);
     }
 
     @NotNull
@@ -318,7 +314,6 @@ public class SpringCloudAppPropertyView extends BaseEditor {
     @Override
     public void dispose() {
         closeRxSubscription(rxSubscription);
-        closeRxSubscription(rxSubscription2);
     }
 
     private static void closeRxSubscription(final Disposable disposable) {

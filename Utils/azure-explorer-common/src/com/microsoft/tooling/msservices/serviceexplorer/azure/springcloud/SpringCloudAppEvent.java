@@ -24,18 +24,18 @@ package com.microsoft.tooling.msservices.serviceexplorer.azure.springcloud;
 
 import com.microsoft.azure.management.appplatform.v2019_05_01_preview.implementation.AppResourceInner;
 import com.microsoft.azure.management.appplatform.v2019_05_01_preview.implementation.DeploymentResourceInner;
-import org.apache.commons.lang3.StringUtils;
 
 public class SpringCloudAppEvent {
-    public static final String SPRING_APP_UPDATE = "spring-app-update";
-    public static final String SPRING_APP_DELETE = "spring-app-delete";
-    private String kind;
+    enum EventKind {
+        SPRING_APP_UPDATE, SPRING_APP_DELETE
+    }
+    private EventKind kind;
     private String id;
     private String clusterId;
     private AppResourceInner appInner;
     private DeploymentResourceInner deploymentInner;
 
-    public SpringCloudAppEvent(String kind, String clusterId, AppResourceInner appInner, DeploymentResourceInner deploymentInner) {
+    public SpringCloudAppEvent(EventKind kind, String clusterId, AppResourceInner appInner, DeploymentResourceInner deploymentInner) {
         this.kind = kind;
         this.clusterId = clusterId;
         this.appInner = appInner;
@@ -43,13 +43,13 @@ public class SpringCloudAppEvent {
         this.deploymentInner = deploymentInner;
     }
 
-    public SpringCloudAppEvent(String kind, String clusterId, String id) {
+    public SpringCloudAppEvent(EventKind kind, String clusterId, String id) {
         this.kind = kind;
         this.clusterId = clusterId;
         this.id = id;
     }
 
-    public String getKind() {
+    public EventKind getKind() {
         return kind;
     }
 
@@ -70,10 +70,10 @@ public class SpringCloudAppEvent {
     }
 
     public boolean isDelete() {
-        return StringUtils.equals(kind, SPRING_APP_DELETE);
+        return kind == EventKind.SPRING_APP_DELETE;
     }
 
     public boolean isUpdate() {
-        return StringUtils.equals(kind, SPRING_APP_UPDATE);
+        return kind == EventKind.SPRING_APP_UPDATE;
     }
 }
