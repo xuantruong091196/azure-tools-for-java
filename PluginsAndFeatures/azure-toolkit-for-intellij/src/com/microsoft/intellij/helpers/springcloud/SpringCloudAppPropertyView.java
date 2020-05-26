@@ -293,7 +293,7 @@ public class SpringCloudAppPropertyView extends BaseEditor {
         this.rxSubscription = SpringCloudStateManager.INSTANCE.subscribeSpringAppEvent(event -> {
             if (event.isUpdate()) {
                 this.prepareViewModel(event.getAppInner(), event.getDeploymentInner());
-            } else if (event.isDelete()) {
+            } else if (event.isDelete() && StringUtils.equals(event.getId(), this.appId)) {
                 closeEditor();
             }
         }, appId, clusterId);
