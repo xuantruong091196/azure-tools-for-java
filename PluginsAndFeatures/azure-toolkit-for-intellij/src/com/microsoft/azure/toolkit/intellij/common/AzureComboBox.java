@@ -29,7 +29,6 @@ import com.intellij.ui.PopupMenuListenerAdapter;
 import com.intellij.ui.SimpleListCellRenderer;
 import com.intellij.ui.components.fields.ExtendableTextComponent;
 import com.intellij.ui.components.fields.ExtendableTextField;
-import com.microsoft.azure.toolkit.lib.common.OperationNotSupportedException;
 import com.microsoft.azure.toolkit.lib.common.utils.TailingDebouncer;
 import com.microsoft.azuretools.azurecommons.helpers.NotNull;
 import com.microsoft.azuretools.azurecommons.helpers.Nullable;
@@ -147,11 +146,6 @@ public abstract class AzureComboBox<T> extends ComboBox<T> implements AzureFormI
             this.setLoading(false);
             this.handleLoadingError(e);
         }
-    }
-
-    @Override
-    public void addItem(final T item) {
-        throw new OperationNotSupportedException("use setItems instead");
     }
 
     public List<T> getItems() {
