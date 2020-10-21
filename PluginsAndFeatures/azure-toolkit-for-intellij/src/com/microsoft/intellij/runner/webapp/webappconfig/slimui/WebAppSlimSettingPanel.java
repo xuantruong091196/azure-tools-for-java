@@ -30,8 +30,6 @@ import com.intellij.packaging.artifacts.Artifact;
 import com.intellij.ui.HideableDecorator;
 import com.intellij.ui.HyperlinkLabel;
 import com.microsoft.azure.management.appservice.DeploymentSlot;
-import com.microsoft.azure.management.appservice.OperatingSystem;
-import com.microsoft.azure.management.appservice.WebApp;
 import com.microsoft.azure.toolkit.intellij.common.AzureArtifactComboBox;
 import com.microsoft.azure.toolkit.intellij.webapp.WebAppComboBox;
 import com.microsoft.azure.toolkit.intellij.webapp.WebAppComboBoxModel;
@@ -39,9 +37,9 @@ import com.microsoft.intellij.runner.AzureSettingPanel;
 import com.microsoft.intellij.runner.webapp.Constants;
 import com.microsoft.intellij.runner.webapp.webappconfig.WebAppConfiguration;
 import com.microsoft.intellij.ui.components.AzureArtifact;
+import com.microsoft.intellij.ui.components.AzureArtifactManager;
 import com.microsoft.intellij.ui.util.UIUtils;
 import com.microsoft.intellij.util.BeforeRunTaskUtils;
-import com.microsoft.intellij.util.MavenRunTaskUtil;
 import com.microsoft.tooling.msservices.components.DefaultLoader;
 import org.apache.commons.compress.utils.FileNameUtils;
 import org.apache.commons.lang.ArrayUtils;
@@ -54,7 +52,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
-import java.awt.event.ItemEvent;
 import java.awt.event.MouseEvent;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -97,10 +94,11 @@ public class WebAppSlimSettingPanel extends AzureSettingPanel<WebAppConfiguratio
     private WebAppComboBox comboBoxWebApp;
     private HideableDecorator slotDecorator;
 
+    private AzureArtifact previousArtifact;
     private WebAppConfiguration webAppConfiguration;
 
     public WebAppSlimSettingPanel(@NotNull Project project, @NotNull WebAppConfiguration webAppConfiguration) {
-        super(project);
+        super(project, false);
         this.presenter = new WebAppDeployViewPresenterSlim();
         this.presenter.onAttachView(this);
         this.webAppConfiguration = webAppConfiguration;
@@ -220,7 +218,8 @@ public class WebAppSlimSettingPanel extends AzureSettingPanel<WebAppConfiguratio
             comboBoxWebApp.refreshItemsWithDefaultValue(configurationModel, WebAppComboBoxModel::isSameWebApp);
         }
         if (configuration.getAzureArtifactType() != null) {
-            comboBoxArtifact.refreshItems(configuration.getAzureArtifactType(), configuration.getTargetPath(), configuration.getArtifactIdentifier());
+            previousArtifact = AzureArtifactManager.getInstance(project).getAzureArtifactById(configuration.getArtifactIdentifier());
+            comboBoxArtifact.refreshItems(configuration.getAzureArtifactType(), configuration.getArtifactIdentifier());
         } else {
             comboBoxArtifact.refreshItems();
         }
@@ -262,7 +261,7 @@ public class WebAppSlimSettingPanel extends AzureSettingPanel<WebAppConfiguratio
         configuration.saveArtifact(comboBoxArtifact.getValue());
         configuration.setDeployToSlot(chkDeployToSlot.isSelected());
         configuration.setSlotPanelVisible(slotDecorator.isExpanded());
-        chkToRoot.setVisible(isAbleToDeployToRoot(configuration.getTargetName()));
+        chkToRoot.setVisible(isAbleToDeployToRoot(comboBoxArtifact.getValue()));
         toggleSlotPanel(configuration.isDeployToSlot() && selectedWebApp != null);
         if (chkDeployToSlot.isSelected()) {
             configuration.setDeployToSlot(true);
@@ -280,16 +279,15 @@ public class WebAppSlimSettingPanel extends AzureSettingPanel<WebAppConfiguratio
         configuration.setOpenBrowserAfterDeployment(chkOpenBrowser.isSelected());
     }
 
-    private boolean isAbleToDeployToRoot(final String targetName) {
+    private boolean isAbleToDeployToRoot(final AzureArtifact azureArtifact) {
         final WebAppComboBoxModel selectedWebApp = getSelectedWebApp();
-        if (selectedWebApp == null) {
+        if (selectedWebApp == null || azureArtifact == null) {
             return false;
         }
-        final WebApp app = selectedWebApp.getResource();
-        final boolean isDeployingWar = StringUtils.isNoneEmpty(targetName) &&
-                MavenRunTaskUtil.getFileType(targetName).equalsIgnoreCase(MavenConstants.TYPE_WAR);
-        return isDeployingWar && (app.operatingSystem() == OperatingSystem.WINDOWS ||
-                !Constants.LINUX_JAVA_SE_RUNTIME.equalsIgnoreCase(app.linuxFxVersion()));
+        final String runtime = selectedWebApp.getRuntime();
+        final String packaging = AzureArtifactManager.getInstance(project).getPackaging(azureArtifact);
+        final boolean isDeployingWar = StringUtils.equalsAnyIgnoreCase(packaging, MavenConstants.TYPE_WAR, "ear");
+        return isDeployingWar && StringUtils.containsIgnoreCase(runtime, "tomcat") || StringUtils.containsIgnoreCase(runtime, "jboss");
     }
 
     private void toggleSlotPanel(boolean slot) {
@@ -317,31 +315,36 @@ public class WebAppSlimSettingPanel extends AzureSettingPanel<WebAppConfiguratio
         lblNewSlot = new HyperlinkLabel("No available deployment slot, click to create a new one");
         lblNewSlot.addHyperlinkListener(e -> rbtNewSlot.doClick());
 
-        comboBoxWebApp = new WebAppComboBox();
+        comboBoxWebApp = new WebAppComboBox(project);
         comboBoxWebApp.addItemListener(e -> loadDeploymentSlot(getSelectedWebApp()));
 
         comboBoxArtifact = new AzureArtifactComboBox(this.project);
-        comboBoxArtifact.setFileChooserDescriptor(virtualFile -> {
+        comboBoxArtifact.setFileFilter(virtualFile -> {
             final String ext = FileNameUtils.getExtension(virtualFile.getPath());
             return ArrayUtils.contains(FILE_NAME_EXT, ext);
         });
         comboBoxArtifact.addItemListener(event -> {
             if (!(event.getItem() instanceof AzureArtifact)) {
                 return;
+            } else {
+                syncBeforeRunTasks((AzureArtifact) event.getItem());
             }
-            final AzureArtifact azureArtifact = (AzureArtifact) event.getItem();
-            DefaultLoader.getIdeHelper().invokeLater(() -> {
-                try {
-                    if (event.getStateChange() == ItemEvent.DESELECTED) {
-                        BeforeRunTaskUtils.addOrRemoveBeforeRunTask(this.getMainPanel(), azureArtifact, webAppConfiguration, false);
-                    } else if (event.getStateChange() == ItemEvent.SELECTED) {
-                        BeforeRunTaskUtils.addOrRemoveBeforeRunTask(this.getMainPanel(), azureArtifact, webAppConfiguration, true);
-                    }
-                } catch (IllegalAccessException e) {
-                    // swallow before run task errors
-                }
-            });
         });
+    }
+
+    private synchronized void syncBeforeRunTasks(AzureArtifact azureArtifact) {
+        try {
+            if (AzureArtifactManager.getInstance(project).equalsAzureArtifactIdentifier(previousArtifact, azureArtifact)) {
+                return;
+            }
+            if (previousArtifact != null) {
+                BeforeRunTaskUtils.addOrRemoveBeforeRunTask(this.getMainPanel(), previousArtifact, webAppConfiguration, false);
+            }
+            previousArtifact = azureArtifact;
+            BeforeRunTaskUtils.addOrRemoveBeforeRunTask(this.getMainPanel(), azureArtifact, webAppConfiguration, true);
+        } catch (IllegalAccessException e) {
+            // swallow before run task errors
+        }
     }
 
     private void loadDeploymentSlot(WebAppComboBoxModel selectedWebApp) {

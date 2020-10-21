@@ -24,6 +24,7 @@ package com.microsoft.intellij.ui.components;
 
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.externalSystem.model.project.ExternalProjectPojo;
+import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.packaging.artifacts.Artifact;
 import com.microsoft.intellij.util.MavenUtils;
@@ -45,6 +46,11 @@ public class AzureArtifact {
         this.type = type;
         this.name = name;
         this.referencedObject = obj;
+    }
+
+    public static AzureArtifact createFromFile(@NotNull String path) {
+        final VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(path);
+        return createFromFile(virtualFile);
     }
 
     public static AzureArtifact createFromFile(@NotNull VirtualFile virtualFile) {
