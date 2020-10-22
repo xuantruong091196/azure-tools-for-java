@@ -33,6 +33,7 @@ import org.jetbrains.plugins.gradle.util.GradleConstants;
 import java.util.*;
 
 public class GradleUtils {
+
     public static List<ExternalProjectPojo> listGradleProjects(Project project) {
         GradleManager manager = (GradleManager) ExternalSystemApiUtil.getManager(GradleConstants.SYSTEM_ID);
         Map<ExternalProjectPojo, Collection<ExternalProjectPojo>> projects =
